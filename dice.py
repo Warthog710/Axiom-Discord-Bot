@@ -3,6 +3,9 @@ import re
 
 from discord.ext.commands.core import command
 
+#TODO: Can't parse negative dice rolls
+#TODO: What about limiting the sides of a dice?
+
 #Maps number of dice rolled to the word
 diceMap = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten']
 
@@ -16,6 +19,8 @@ async def parseDice(ctx, cmd):
         if '-' in cmdString:
             modifier = ''
 
+        print(cmdString)
+
         cmdString = cmdString.lower()
         commands = re.split('d|\+|-', cmdString)
 
@@ -23,8 +28,8 @@ async def parseDice(ctx, cmd):
         commands = [int(i) for i in commands]
 
         #Make sure the user didn't ask to role zero dice
-        if (commands[0] == 0):
-            await ctx.send("Its physically impossible to roll 0 dice... :face_with_monocle:")
+        if (commands[0] <= 0):
+            await ctx.send("Its physically impossible to roll " + str(commands[0]) + " dice... :face_with_monocle:")
             return
 
         #Add a zero modifier if no modifier was passed
@@ -45,7 +50,7 @@ async def parseDice(ctx, cmd):
 
         #If the user wants to roll more than 10 dice... just do it
         elif (commands[0] > 10):
-            await ctx.send("Rolling " + diceMap[commands[0] - 1] + " d" + str(commands[1]) + " with " + modifier + str(commands[2]) + " modifier...\n")    
+            await ctx.send("Rolling " + str(commands[0]) + " d" + str(commands[1]) + " with " + modifier + str(commands[2]) + " modifier...\n")    
             for x in range(commands[0]):
                 total += random.randint(1, commands[1]) + commands[2]
             await ctx.send(":game_die: " + str(total) + " :game_die:")
