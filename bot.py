@@ -5,6 +5,9 @@ from dice import parseDice
 #Bot token
 token = 'Nzc0MDYxMzk1MzAxNzYxMDc1.X6SS2g.EMQnjOhDuW-_5Mj3lRHgVnFm0dE'
 
+#TODO: In dice rolling... have it @ the user who asked it to roll
+#TODO: Move bot token out of code... Into local config file?
+
 #Bot command prefix
 bot = commands.Bot(command_prefix='!')
 
