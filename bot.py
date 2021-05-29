@@ -3,6 +3,8 @@ from discord.ext import commands
 from dice import parseDice
 from randomFact import randomFact
 
+#Invite URL: https://discord.com/oauth2/authorize?client_id=774061395301761075&scope=bot&permissions=8
+
 #TODO: In dice rolling... have it @ the user who asked it to roll
 #TODO: Move bot token out of code... Into local config file?
 #TODO: Name generation? Weather? Time-zone conversion?
@@ -22,13 +24,13 @@ from randomFact import randomFact
 #TODO: Rework how dice.py parses the string... it doesn't support negatives and stuff
 
 #Load config
-with open('config.json', 'r') as configFile:
+with open('./Config/config.json', 'r') as configFile:
     configData = configFile.read()
     config = json.loads(configData)
 
 #Used to get the prefix for the server
 def getPrefix(client, message):
-    with open('prefixes.json', "r") as file:
+    with open('./Config/prefixes.json', "r") as file:
         prefixes = json.load(file)
 
     return  prefixes[str(message.guild.id)]
@@ -40,12 +42,12 @@ bot = commands.Bot(command_prefix=getPrefix)
 #Function runs when a server joins and sets a default prefix
 @bot.event
 async def on_guild_join(guild):
-    with open ('prefixes.json', 'r') as file:
+    with open ('./Config/prefixes.json', 'r') as file:
         prefixes = json.load(file)
 
     prefixes[str(guild.id)] = '!'
 
-    with open ('prefixes.json', 'w') as file:
+    with open ('./Config/prefixes.json', 'w') as file:
         json.dump(prefixes, file, indent=4)
 
     print("joined")
@@ -53,12 +55,12 @@ async def on_guild_join(guild):
 #Removes the server prefix recorded if the bot is removed from the server
 @bot.event
 async def on_guild_remove(guild):
-    with open ('prefixes.json', 'r') as file:
+    with open ('./Config/prefixes.json', 'r') as file:
         prefixes = json.load(file)
 
     prefixes.pop(str(guild.id))
 
-    with open ('prefixes.json', 'w') as file:
+    with open ('./Config/prefixes.json', 'w') as file:
         json.dump(prefixes, file, indent=4)
 
 #This can be called to change the prefix of the bot on a server
@@ -66,12 +68,12 @@ async def on_guild_remove(guild):
 @bot.command(name='changePrefix', help='Change the prefix the bot uses on this server\nUsage !changePrefix <desired_prefix>')
 @commands.has_permissions(manage_guild=True)
 async def changePrefix(ctx, prefix):
-    with open('prefixes.json', 'r') as file:
+    with open('./Config/prefixes.json', 'r') as file:
         prefixes = json.load(file)
 
     prefixes[str(ctx.guild.id)] = prefix
 
-    with open('prefixes.json', 'w') as file:
+    with open('./Config/prefixes.json', 'w') as file:
         json.dump(prefixes, file, indent=4)
 
     await ctx.send('Prefix successfully changed to {}'.format(prefix))

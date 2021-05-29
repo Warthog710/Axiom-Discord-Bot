@@ -1,71 +1,104 @@
 import random
 import re
 
-from discord.ext.commands.core import command
-
-#TODO: Can't parse negative dice rolls
-#TODO: What about limiting the sides of a dice?
-
-#Maps number of dice rolled to the word
-diceMap = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten']
-
+# Command in form: !roll 4d20 +4 or !roll 3d6 - 3, or !roll 4d8
 async def parseDice(ctx, cmd):
     try:
-        total = 0
-        modifier = '+'
-        cmdString = ''.join(cmd)
+        cmd = list(cmd)
 
-        #Set modifier if negative
-        if '-' in cmdString:
-            modifier = ''
+        # If the length of commands is > 1, we have a modifier
+        if len(cmd) > 1:
+            dice_num, dice_sides = re.split('d|D', cmd[0])
+            dice_num = int(dice_num)
+            dice_sides = int(dice_sides)
+            del(cmd[0])
+            mod = int(''.join(cmd))
+        else:
+            dice_num, dice_sides = re.split('d|D', cmd[0])
+            dice_num = int(dice_num)
+            dice_sides = int(dice_sides)
+            mod = 0
 
-        print(cmdString)
-
-        cmdString = cmdString.lower()
-        commands = re.split('d|\+|-', cmdString)
-
-        #Convert list of strings to ints
-        commands = [int(i) for i in commands]
-
-        #Make sure the user didn't ask to role zero dice
-        if (commands[0] <= 0):
-            await ctx.send("Its physically impossible to roll " + str(commands[0]) + " dice... :face_with_monocle:")
+        #If the user asked to roll less than 1 dice
+        if dice_num < 1:
+            await ctx.send(f'It\'s physically impossible to roll {dice_num} dice... :face_with_monocle:')
             return
 
-        #Add a zero modifier if no modifier was passed
-        if (len(commands) == 2):
-            commands.append(0)  
+        #If the user asked to roll a dice with less than 1 side
+        #? Supports dice with >=1 side.
+        if dice_sides < 1:
+            await ctx.send(f'I\'ll roll a dice with {dice_sides} sides once you tell me how they work... :thinking:')
+            return
 
-        #If the modifier was negative... negate the modifier
-        if (modifier == ''):
-            commands[2] = commands[2] * -1
+        #If the user asked to roll greater than 1000 dice
+        if dice_num > 1000:
+            await ctx.send('I currently can\'t roll more than 1000 dice :sob:')
+            return
 
-        #if the user only wants to rule 1 dice... just do it
-        if (commands[0] == 1):
-            await ctx.send("Rolling " + diceMap[commands[0] - 1] + " d" + str(commands[1]) + " with " + modifier + str(commands[2]) + " modifier...\n")   
-            await ctx.send(":game_die: " + str((random.randint(1, commands[1]) + commands[2])) + " :game_die:")
+        #If the user wants to roll 1 dice
+        if dice_num == 1:
+            msg = f' rolling {dice_num}d{dice_sides}'
 
-        elif (commands[0] > 1000):
-            await ctx.send("I can't currently roll more than 1000 dice :sob:")
+            #Only show mod if its not zero
+            if mod != 0:
+                msg += f' with modifier {mod}:\n'
+            else:
+                msg += ':\n'
 
-        #If the user wants to roll more than 10 dice... just do it
-        elif (commands[0] > 10):
-            await ctx.send("Rolling " + str(commands[0]) + " d" + str(commands[1]) + " with " + modifier + str(commands[2]) + " modifier...\n")    
-            for x in range(commands[0]):
-                total += random.randint(1, commands[1]) + commands[2]
-            await ctx.send(":game_die: " + str(total) + " :game_die:")
+            msg += f':game_die: **{random.randint(1, dice_sides) + mod}** :game_die:'
 
+            #Send the msg
+            await ctx.send(ctx.message.author.mention + msg)
+        
+        elif dice_num <= 10:
+            msg = f'{ctx.message.author.mention} rolling {dice_num}d{dice_sides}'
+
+            #Only show mod if its not zero
+            if mod != 0:
+                msg += f' with modifier {mod}:\n```Dice\tRoll\tMod\n----\t----\t---\n'
+
+                #Do the roll!
+                total = 0
+                for _ in range(dice_num):
+                    rand = random.randint(1, dice_sides) + mod
+                    total += rand
+                    msg += '{:^4}\t'.format(('d' + str(dice_sides))) + '{:^4}\t'.format(str(rand)) + '{:^3}\n'.format(str(mod))
+
+                msg += f'\nAverage Roll: {round(total/dice_num, 2)}\nTotal: {total}```'
+                await ctx.send(msg)
+            else:
+                msg += ':\n```Dice\tRoll\n----\t----\n'
+
+                #Do the roll!
+                total = 0
+                for _ in range(dice_num):
+                    rand = random.randint(1, dice_sides)
+                    total += rand
+                    msg += '{:^4}\t'.format(('d' + str(dice_sides))) + '{:^4}\n'.format(str(rand))
+
+                msg += f'\nAverage Roll: {round(total/dice_num, 2)}\nTotal: {total}```'
+                await ctx.send(msg)
+
+        #We have greater than 10 dice, just show the total
         else:
-            await ctx.send("Rolling " + diceMap[commands[0] - 1] + " d" + str(commands[1]) + " with " + modifier + str(commands[2]) + " modifier...\n")   
-            msg = '```Dice\tRoll\tMod\n----\t----\t---\n'
-            for x in range(commands[0]):
-                rand = random.randint(1, commands[1]) + commands[2]
-                total += rand
-                msg += '{:4}'.format(('d' + str(commands[1]))) + '\t' + '{:4}'.format(str(rand)) + '\t' + '{:3}'.format(modifier + str(commands[2])) + '\n'
+            msg = f' rolling {dice_num}d{dice_sides}'
 
-            msg += '\nAverage Roll: ' + str(round(total/commands[0], 2)) + '\n' + 'Total: ' + str(total) + '```'
-            await ctx.send(msg)
+            #Only show mod if its not zero
+            if mod != 0:
+                msg += f' with modifier {mod}:\n'
+            else:
+                msg += ':\n'
 
-    #If any exception occurs
-    except Exception:
-        await ctx.send("I didn't recognize that command. Try asking me: **!help roll**")    
+            #Do the roll!
+            total = 0
+            for _ in range(dice_num):
+                total += random.randint(1, dice_sides) + mod
+
+            msg += f':game_die: **{total}** :game_die:'
+
+            #Send the msg
+            await ctx.send(ctx.message.author.mention + msg)
+
+    # If any exception occurs
+    except Exception as e:
+        await ctx.send("I didn't recognize that command. Try asking me: **!help roll**")
