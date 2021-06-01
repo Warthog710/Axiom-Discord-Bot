@@ -1,7 +1,8 @@
 import json
 import asyncio
 
-from discord.ext import commands, tasks
+from discord.ext import commands
+from datetime import datetime
 from Dice import parseDice
 from RandomFact import randomFact
 from Scheduler import scheduler
@@ -46,18 +47,18 @@ def getPrefix(client, message):
 
 # Set Bot command prefix
 bot = commands.Bot(command_prefix=getPrefix)
+sched = scheduler()
 
 async def scheduling_task():
     await bot.wait_until_ready()
-    sched = scheduler(bot)
 
     while not bot.is_closed():
-        await sched.printTask()
+        await sched.performTasks(bot)
         #channel = bot.get_channel(id=774063966258987048)
         #await channel.send(f'Count: {count}')
 
-        #TODO: Change this to sleep until the next minute...
-        await asyncio.sleep(5)
+        # Wait until the next minute
+        await asyncio.sleep(60 - datetime.now().second)
 
 @bot.event
 async def on_guild_join(guild):
@@ -97,7 +98,7 @@ async def on_ready():
 
 # Defines the !roll command
 # ? Note *cmd means everything after !roll is sent as a tuple
-@bot.command(name='roll', help='Roll a dice!\nUsage: !roll <number_of_dice> d <number_of_sides> +/- <modifier>')
+@bot.command(name='roll', help='Roll a dice!\nUsage: !roll <number_of_dice>d<number_of_sides> +/- <modifier>')
 async def rollDice(ctx, *cmd):
     await(parseDice(ctx, cmd))
 
@@ -105,6 +106,58 @@ async def rollDice(ctx, *cmd):
 @bot.command(name='random', help='Get a random fact!\nUsage: !random or !random daily')
 async def getRandomFact(ctx, *cmd):
     await(randomFact(ctx, cmd, config))
+
+# Reminder
+# ? In form: !reminder <month>/<day>/<year> <hour>:<minutes>PM/AM <Alert_Level> <Message>
+@bot.command(name='reminder', help='Set a reminder.')
+async def reminder(ctx, date, time, alert_level, *message):
+    try:
+        message = ' '.join(message)
+        task_id = await sched.addTask(ctx.message.author.id, 'REMINDER', alert_level.upper().strip(), date, time, ctx.channel.id, ctx.message.id, message, bot)
+    except Exception as e:
+        print(e)
+        await ctx.send('I didn\'t recognize that command. Try asking me: **!help reminder**')
+        return
+
+    # React with a +1 and send a confirmation message to the message author
+    await ctx.message.add_reaction('👍')
+    await ctx.author.send(f'Reminder saved! If you wish to delete this reminder please use the command ``!deleteReminder {task_id}`` (prefix varies): ```{message}```')
+
+# Personal reminder
+# ? in form: !personalReminder <month>/<day>/<year> <hour>:<minutes>PM/AM <Message>
+@bot.command(name='personalReminder', help='Set a personal reminder.')
+async def personalReminder(ctx, date, time, *message):
+    try:
+        message = ' '.join(message)
+        task_id = await sched.addTask(ctx.message.author.id, 'PM', 'PERSONAL', date, time, ctx.channel.id, ctx.message.id, message, bot)
+    except Exception as e:
+        print(e)
+        await ctx.send('I didn\'t recognize that command. Try asking me: **!help personalReminder**')
+        return
+
+    # React with a +1 and send a confirmation message to the message author
+    await ctx.message.add_reaction('👍')
+    await ctx.author.send(f'Personal reminder saved! If you wish to delete this reminder please use the command ``!deleteReminder {task_id}`` (prefix varies): ```{message}```')
+
+# Self-Destruct, deletes the message at a specific time and date
+# ? In form: !selfDestruct <month>/<day>/<year> <hour>:<minutes>PM/AM
+@bot.command(name='selfDestruct', help='Deletes the message at a given time and date.')
+async def selfDestruct(ctx, date, time, *message):
+    try:
+        message = ' '.join(message)
+        task_id = await sched.addTask(ctx.message.author.id, 'SELF-DESTRUCT', 'PERSONAL', date, time, ctx.channel.id, ctx.message.id, message, bot)
+    except Exception as e:
+        print(e)
+        await ctx.send('I didn\'t recognize that command. Try asking me: **!help selfDestruct**')
+        return
+
+    # React with a bomb and send a confirmation message to the message author
+    await ctx.message.add_reaction('💣')
+    await ctx.author.send(f'Self-Destruct task saved! If you wish to delete this task please use the command ``!deleteTask {task_id}`` (prefix varies): ```{message}```')
+
+@bot.command(name='deleteReminder', help='Deletes a reminder or task.')
+async def deleteReminder(ctx, task_id):
+    await sched.delTask(ctx, task_id)
 
 #Setup the scheduling task
 bot.loop.create_task(scheduling_task())
