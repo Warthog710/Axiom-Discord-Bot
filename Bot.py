@@ -1,3 +1,4 @@
+from MarkovNameGenerator import markovNameGenerator
 import json
 import asyncio
 
@@ -6,10 +7,11 @@ from datetime import datetime
 from Dice import parseDice
 from RandomFact import randomFact
 from Scheduler import scheduler
+from MarkovNameGenerator import markovNameGenerator
 
 # Invite URL: https://discord.com/oauth2/authorize?client_id=774061395301761075&scope=bot&permissions=8
 
-# TODO: Name generation? Weather? Time-zone conversion?
+# TODO: Weather? Time-zone conversion?
 # TODO: Moderation using Google's API?
 # TODO: Coinflip?
 # TODO: Automatically assign roles?
@@ -48,6 +50,7 @@ def getPrefix(client, message):
 # Set Bot command prefix
 bot = commands.Bot(command_prefix=getPrefix)
 sched = scheduler()
+nameGen = markovNameGenerator(2)
 
 async def scheduling_task():
     await bot.wait_until_ready()
@@ -78,7 +81,7 @@ async def on_guild_remove(guild):
 
 # This can be called to change the prefix of the bot on a server
 # ? Only a member with manage guild permissions can do this
-@bot.command(name='changePrefix', help='Change the prefix the bot uses on this server\nUsage !changePrefix <desired_prefix>')
+@bot.command(name='changePrefix', help='Change the prefix the bot uses on this server\n\nUsage !changePrefix <desired_prefix>')
 @commands.has_permissions(manage_guild=True)
 async def changePrefix(ctx, prefix):
     # Only accept prefixes of a single char
@@ -98,7 +101,7 @@ async def on_ready():
 
 # Defines the !roll command
 # ? Note *cmd means everything after !roll is sent as a tuple
-@bot.command(name='roll', help='Roll a dice!\nUsage: !roll <number_of_dice>d<number_of_sides> +/- <modifier>')
+@bot.command(name='roll', help='Roll a dice! Modifier is optional.\nUsage: !roll <number_of_dice>d<number_of_sides> +/- <modifier>')
 async def rollDice(ctx, *cmd):
     await(parseDice(ctx, cmd))
 
@@ -109,7 +112,7 @@ async def getRandomFact(ctx, *cmd):
 
 # Reminder
 # ? In form: !reminder <month>/<day>/<year> <hour>:<minutes>PM/AM <Alert_Level> <Message>
-@bot.command(name='reminder', help='Set a reminder.')
+@bot.command(name='reminder', aliases=['r'], help='Set a reminder. This reminder will be sent in the same channel it was requested from.\n\nUsage: !reminder <month>/<day>/<year> <hour>:<minutes>PM/AM <alert_level> <message>\n\nAlert level can either be personal (@author), here (@here), or everyone (@everyone).')
 async def reminder(ctx, date, time, alert_level, *message):
     try:
         message = ' '.join(message)
@@ -125,7 +128,7 @@ async def reminder(ctx, date, time, alert_level, *message):
 
 # Personal reminder
 # ? in form: !personalReminder <month>/<day>/<year> <hour>:<minutes>PM/AM <Message>
-@bot.command(name='personalReminder', help='Set a personal reminder.')
+@bot.command(name='personalReminder', aliases=['pr'], help='Set a personal reminder. This reminder will be sent as a PM to the author.\n\nUsage: !personalReminder <month>/<day>/<year> <hour>:<minutes>PM/AM <message>')
 async def personalReminder(ctx, date, time, *message):
     try:
         message = ' '.join(message)
@@ -141,7 +144,7 @@ async def personalReminder(ctx, date, time, *message):
 
 # Self-Destruct, deletes the message at a specific time and date
 # ? In form: !selfDestruct <month>/<day>/<year> <hour>:<minutes>PM/AM
-@bot.command(name='selfDestruct', help='Deletes the message at a given time and date.')
+@bot.command(name='selfDestruct', aliases=['sd'], help='Deletes the message at a given time and date.\n\nUsage: !selfDestruct <month>/<day>/<year> <hour>:<minutes>PM/AM')
 async def selfDestruct(ctx, date, time, *message):
     try:
         message = ' '.join(message)
@@ -155,9 +158,24 @@ async def selfDestruct(ctx, date, time, *message):
     await ctx.message.add_reaction('💣')
     await ctx.author.send(f'Self-Destruct task saved! If you wish to delete this task please use the command ``!deleteTask {task_id}`` (prefix varies): ```{message}```')
 
-@bot.command(name='deleteReminder', help='Deletes a reminder or task.')
+@bot.command(name='deleteReminder', aliases=['dr', 'deleteTask', 'dt'], help='Deletes a reminder or task.\n\nUsage: !deleteReminder <id>\n\nWhen a reminder/task is set, the Id of that reminder will be PM\'d to the author.')
 async def deleteReminder(ctx, task_id):
     await sched.delTask(ctx, task_id)
+
+@bot.command(name='name', help='Generates a random name.\n\nUsage: !name <length>\n\nThe length parameter is optional. If it is not set, the name generated will be 3-10 characters in length. Note, due to the algorithm used for generation, it is possible that a returned name is less than the requested amount of characters.')
+async def generateName(ctx, length=None):
+    try:
+        if length != None:
+            length = int(length)
+            if length > 30 or length < 3:
+                await ctx.send(f'Names can only be generated with length 3-30.')
+                return
+
+        name = await nameGen.generateName(length)
+        await ctx.send(f'{ctx.message.author.mention} {name}')
+    except Exception as e:
+        print(e)
+        await ctx.send('I didn\'t recognize that command. Try asking me: **!help name**')
 
 #Setup the scheduling task
 bot.loop.create_task(scheduling_task())
