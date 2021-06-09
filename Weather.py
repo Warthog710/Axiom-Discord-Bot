@@ -19,9 +19,11 @@ async def weather(ctx, cmd, token):
                     temp = resp_json['main']['temp']
                     humidity = resp_json['main']['humidity']
                     pressure = resp_json['main']['pressure']
+                    longitude = resp_json['coord']['lon']
+                    latitude = resp_json['coord']['lat']
 
                     # Produce embed
-                    embed = await getWeatherEmbed(title, description, thumbnail, temp, humidity, pressure)
+                    embed = await getWeatherEmbed(title, description, thumbnail, temp, humidity, pressure, longitude, latitude)
 
                     # Send msg
                     await ctx.send(embed=embed)
@@ -32,8 +34,8 @@ async def weather(ctx, cmd, token):
                 await ctx.send('I didn\'t recognize that command. Try asking me: **!help weather**')
 
 # Returns an embed for the weather
-async def getWeatherEmbed(title, description, thumbnail, temp, humidity, pressure):
-    embed = discord.Embed(title=title, description=description)
+async def getWeatherEmbed(title, description, thumbnail, temp, humidity, pressure, longitude, latitude):
+    embed = discord.Embed(title=title, url=f'http://maps.google.com/maps?q={latitude},{longitude}', description=description)
     embed.set_thumbnail(url=f'http://openweathermap.org/img/w/{thumbnail}.png')
     embed.add_field(name='Temp', value=f'{temp} °F', inline=True)
     embed.add_field(name='Humidity', value=f'{humidity}%', inline=True)

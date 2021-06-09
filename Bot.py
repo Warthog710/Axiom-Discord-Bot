@@ -1,4 +1,3 @@
-from MarkovNameGenerator import markovNameGenerator
 import json
 import asyncio
 
@@ -12,14 +11,12 @@ from Weather import weather
 
 # Invite URL: https://discord.com/oauth2/authorize?client_id=774061395301761075&scope=bot&permissions=8
 
-# TODO: Weather? Time-zone conversion?
+# TODO: Time-zone conversion?
 # TODO: Moderation using Google's API?
 # TODO: Coinflip?
 # TODO: Automatically assign roles?
 # TODO: Greet a user that joins the server?
 # TODO: Keep highest/lowest dice... and bounded dice?
-# TODO: Reminders to a specific user?
-# TODO: Scheduler... schedule an event that @'s a certain role(s) at the given event time (add, show, edit, delete events)
 # TODO: Bot says "nice" everytime 69 is in a message
 # TODO: Add !creator message to give sage wisdom on who programmed the bot
 # TODO: Fact checking using Google's API
