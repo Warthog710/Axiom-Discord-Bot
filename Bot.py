@@ -8,6 +8,7 @@ from Dice import parseDice
 from RandomFact import randomFact
 from Scheduler import scheduler
 from MarkovNameGenerator import markovNameGenerator
+from Weather import weather
 
 # Invite URL: https://discord.com/oauth2/authorize?client_id=774061395301761075&scope=bot&permissions=8
 
@@ -176,6 +177,10 @@ async def generateName(ctx, length=None):
     except Exception as e:
         print(e)
         await ctx.send('I didn\'t recognize that command. Try asking me: **!help name**')
+
+@bot.command(name='weather', help='Get the current weather.\n\nUsage: !weather <city> <state> <country>\n\nBoth the state and country parameters are optional. However, if an error occurs or the wrong city is returned try specifiyng them. In addition, please ensure parameters are seperated by a single space.')
+async def getWeather(ctx, *cmd):
+    await weather(ctx, cmd, config['openWeatherToken'])
 
 #Setup the scheduling task
 bot.loop.create_task(scheduling_task())
