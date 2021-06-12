@@ -8,6 +8,7 @@ from RandomFact import randomFact
 from Scheduler import scheduler
 from MarkovNameGenerator import markovNameGenerator
 from Weather import weather
+from Timezones import timezone
 
 # Invite URL: https://discord.com/oauth2/authorize?client_id=774061395301761075&scope=bot&permissions=8
 
@@ -49,6 +50,7 @@ def getPrefix(client, message):
 bot = commands.Bot(command_prefix=getPrefix)
 sched = scheduler()
 nameGen = markovNameGenerator(2)
+tz = timezone()
 
 async def scheduling_task():
     await bot.wait_until_ready()
@@ -179,7 +181,35 @@ async def generateName(ctx, length=None):
 async def getWeather(ctx, *cmd):
     await weather(ctx, cmd, config['openWeatherToken'])
 
-#Setup the scheduling task
+@bot.command(name='timezone', help='Convert a given time to a given timezone.\n\nUsage: !timezone <month>/<day>/<year> <hour>:<minutes>PM/AM <timezone> <desired_timezone>\n\nIf the date is not specificed, the current date (PST) will be used.')
+async def convertTimezone(ctx, *cmd):
+    # No date was passed, use the current date
+    if len(cmd) == 3:
+        date = datetime.strftime(datetime.now(), '%m/%d/%Y')
+        time = cmd[0]
+        current_timezone = cmd[1]
+        desired_timezone = cmd[2]
+
+    # A date was passed, use this date
+    elif len(cmd) == 4:
+        date = cmd[0]
+        time = cmd[1]
+        current_timezone = cmd[2]
+        desired_timezone = cmd[3]
+
+    # String was invalid
+    else:
+        await ctx.send('I didn\'t recognize that command. Try asking me: **!help timezone**')
+        return
+
+    # Perform the calculation
+    await tz.calculate_timezone(ctx, date, time, current_timezone, desired_timezone)
+
+@bot.command(name='acceptableTimezones', help='Sends the author a list of acceptable timezones for the requested zone.\n\nUsage: !acceptableTimezones <zone>\n\nSupported zones:\nAfrica\nAmerica\nAntartica\nArtic\nAsia\nAtlantic\nAustralia\nCanada\nEurope\nGMT\nIndian\nPacific\nUS\nUTC')
+async def convertTimezone(ctx, zone):
+    await tz.send_timezone_list(ctx, zone)
+    
+# Setup the scheduling task
 bot.loop.create_task(scheduling_task())
 
 # Runs the bot with the access code...
