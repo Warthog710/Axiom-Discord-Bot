@@ -1,5 +1,9 @@
 import json
 import asyncio
+import random
+import qrcode
+import discord
+import os
 
 from discord.ext import commands
 from datetime import datetime
@@ -12,9 +16,7 @@ from Timezones import timezone
 
 # Invite URL: https://discord.com/oauth2/authorize?client_id=774061395301761075&scope=bot&permissions=8
 
-# TODO: Time-zone conversion?
 # TODO: Moderation using Google's API?
-# TODO: Coinflip?
 # TODO: Automatically assign roles?
 # TODO: Greet a user that joins the server?
 # TODO: Keep highest/lowest dice... and bounded dice?
@@ -57,8 +59,6 @@ async def scheduling_task():
 
     while not bot.is_closed():
         await sched.performTasks(bot)
-        #channel = bot.get_channel(id=774063966258987048)
-        #await channel.send(f'Count: {count}')
 
         # Wait until the next minute
         await asyncio.sleep(60 - datetime.now().second)
@@ -208,6 +208,25 @@ async def convertTimezone(ctx, *cmd):
 @bot.command(name='acceptableTimezones', help='Sends the author a list of acceptable timezones for the requested zone.\n\nUsage: !acceptableTimezones <zone>\n\nSupported zones:\nAfrica\nAmerica\nAntartica\nArtic\nAsia\nAtlantic\nAustralia\nCanada\nEurope\nGMT\nIndian\nPacific\nUS\nUTC')
 async def convertTimezone(ctx, zone):
     await tz.send_timezone_list(ctx, zone)
+
+@bot.command(name='coinflip', help='Flip a coin.\n\nUsage: !coinflip')
+async def coinflip(ctx):
+    if random.randint(0, 1) == 1:
+        await ctx.send(f'{ctx.author.mention} heads!')
+    else:
+        await ctx.send(f'{ctx.author.mention} tails!')
+
+@bot.command(name='qrcode', help='Generates a QR Code for the passed message or link.\n\nUsage: !qrcode <message>')
+async def generateQR(ctx, *msg):
+    try:
+        msg = ' '.join(msg)
+        img = qrcode.make(msg)
+        img.save('./qrcode.png')
+        await ctx.send(f'{ctx.author.mention} Generated QR Code:', file=discord.File('./qrcode.png'))
+        os.remove('./qrcode.png')
+    except Exception as e:
+        print(e)
+        await ctx.send('I didn\'t recognize that command. Try asking me: **!help qrcode**')
     
 # Setup the scheduling task
 bot.loop.create_task(scheduling_task())
